@@ -35,6 +35,8 @@ import {
   formatSegmentTimestamp
 } from '../../utils/formatters';
 import { UI_CONFIG } from '../../utils/constants';
+import { copyPlainText, downloadJsonAsFile, downloadTextAsFile } from '../../utils/resultExport';
+import { getTranscriptionSegmentKey } from '../../utils/transcriptionSegmentKey';
 import { Button } from '../common/Button';
 
 interface ResultsViewProps {
@@ -61,40 +63,20 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
   const handleCopyText = async () => {
     try {
-      await navigator.clipboard.writeText(result.transcriptionText);
+      await copyPlainText(result.transcriptionText);
       setCopied(true);
       setTimeout(() => setCopied(false), UI_CONFIG.COPY_FEEDBACK_TIMEOUT_MS);
-    } catch (error) {
+    } catch {
       // Clipboard API may fail in some browsers/environments
-      // Fail silently as this is a non-critical operation
     }
   };
 
   const handleDownloadText = () => {
-    const blob = new Blob([result.transcriptionText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transcription-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadTextAsFile(result.transcriptionText);
   };
 
   const handleDownloadJSON = () => {
-    const data = {
-      ...result,
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transcription-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadJsonAsFile({ ...result });
   };
 
   return (
@@ -256,7 +238,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
             {result.segments.map((segment, index) => (
               <div
-                key={index}
+                key={getTranscriptionSegmentKey(segment, index)}
                 className="group flex gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
               >
                 <div className="flex-shrink-0">

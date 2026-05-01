@@ -12,7 +12,7 @@
 import React from 'react';
 import { Info, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
-import { APP_CONFIG } from '../../utils/constants';
+import { FILE_RULES, getFileRulesDocumentationHint } from '../../utils/fileRules';
 import { formatFileSize } from '../../utils/fileValidation';
 
 interface DemoNoticeProps {
@@ -24,10 +24,8 @@ interface DemoNoticeProps {
  * DemoNotice component displays demo site constraints and configuration information.
  */
 export const DemoNotice: React.FC<DemoNoticeProps> = ({ className }) => {
-  const maxFileSizeFormatted = formatFileSize(APP_CONFIG.maxFileSize);
-  const supportedFormats = APP_CONFIG.supportedExtensions
-    .map(ext => ext.toUpperCase().replace('.', ''))
-    .join(', ');
+  const maxFileSizeFormatted = formatFileSize(FILE_RULES.maxFileSizeBytes);
+  const supportedFormats = FILE_RULES.extensionsShortUpper;
 
   return (
     <div
@@ -62,7 +60,7 @@ export const DemoNotice: React.FC<DemoNoticeProps> = ({ className }) => {
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-300 mt-2 flex items-center gap-1">
               <Settings className="h-3 w-3" />
-              These constraints can be modified in configuration files (config.py, application.properties, constants.ts)
+              {getFileRulesDocumentationHint()} Align backend limits in config.py / application.properties.
             </p>
           </div>
         </div>

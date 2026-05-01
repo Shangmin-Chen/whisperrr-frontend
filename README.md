@@ -1,11 +1,6 @@
 # Whisperrr Frontend
 
-React ( TypeScript ) UI for the Whisperrr transcription platform.
-
-## Related repositories
-
-- [whisperrr-backend](https://github.com/) — Spring Boot API (replace with your remote)
-- [whisperrr-py-microservice](https://github.com/) — Python transcription service (replace with your remote)
+React (TypeScript) UI for Whisperrr transcription.
 
 ## Prerequisites
 
@@ -13,22 +8,31 @@ React ( TypeScript ) UI for the Whisperrr transcription platform.
 
 ## Configuration
 
-Point the app at your API (default assumes `http://localhost:7331/api`):
+**Local development (recommended):** do **not** set `VITE_API_URL`. The app requests `/api?…` relative to the Vite dev origin; `vite.config.ts` proxies `/api` to Spring (default `http://127.0.0.1:7331`).
+
+Optional `.env`:
+
+- `VITE_DEV_PROXY_TARGET` — override Spring proxy target when the gateway is elsewhere.
+- `VITE_API_URL` — **full Spring base URL including `/api`** when building or running without that proxy (tunnels, `npm run build` served from nginx/Worker-only static hosting).
+- `VITE_MAX_FILE_SIZE` — max upload size in MB (integer).
+- `VITE_DEBUG_API` — `true` for verbose API logging.
+
+Interactive helper:
 
 ```bash
 ./setup-env.sh
 ```
 
-This writes `.env` with `REACT_APP_API_URL`. Restart `npm start` after changes.
+(Enter answers use proxy mode — only the comments template; paste a URL to write `VITE_API_URL`.)
 
 ## Run locally
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
-Default dev server: http://localhost:3737
+Default dev URL: http://localhost:3737 (or `127.0.0.1:3737` — both work with the proxy + gateway defaults).
 
 ## Tests & lint
 
@@ -39,10 +43,13 @@ npm run lint
 
 ## Production build
 
+Build with **`VITE_API_URL`** pointing at your public API (`https://your-api.example.com/api`):
+
 ```bash
-npm run build
-npx serve -s build -l 3737
+VITE_API_URL=https://your-api.example.com/api npm run build
 ```
+
+Serve the `build/` output from your CDN/Worker/nginx (see Dockerfile production stage).
 
 ## License
 

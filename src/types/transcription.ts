@@ -29,6 +29,9 @@ export interface TranscriptionResultResponse {
 }
 
 export interface TranscriptionSegment {
+  /** Optional segment id from the backend (preferred for stable list keys). */
+  id?: string | number;
+
   /** Start time of the segment in seconds */
   startTime: number;
   
@@ -103,16 +106,6 @@ export interface ModelInfo {
   accuracy: string;
 }
 
-export const AVAILABLE_MODELS: ModelInfo[] = [
-  { size: 'tiny', description: 'Fastest, least accurate', sizeMB: 39, speed: '~32x realtime', accuracy: 'Basic' },
-  { size: 'base', description: 'Good balance of speed and accuracy', sizeMB: 74, speed: '~16x realtime', accuracy: 'Good' },
-  { size: 'small', description: 'Better accuracy, slower', sizeMB: 244, speed: '~6x realtime', accuracy: 'Better' },
-  { size: 'medium', description: 'Good accuracy, slower', sizeMB: 769, speed: '~2x realtime', accuracy: 'High' },
-  { size: 'large', description: 'Best accuracy, slowest', sizeMB: 1550, speed: '~1x realtime', accuracy: 'Highest' },
-  { size: 'large-v2', description: 'Best accuracy, slowest (v2)', sizeMB: 1550, speed: '~1x realtime', accuracy: 'Highest' },
-  { size: 'large-v3', description: 'Best accuracy, slowest (v3)', sizeMB: 1550, speed: '~1x realtime', accuracy: 'Highest' },
-];
-
 export interface LanguageInfo {
   /** ISO 639-1 language code */
   code: string;
@@ -121,94 +114,8 @@ export interface LanguageInfo {
   name: string;
 }
 
-export const AVAILABLE_LANGUAGES: LanguageInfo[] = [
-  { code: 'auto', name: 'Auto-detect' },
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-  { code: 'pt', name: 'Portuguese' },
-  { code: 'ru', name: 'Russian' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'ko', name: 'Korean' },
-  { code: 'zh', name: 'Chinese' },
-  { code: 'ar', name: 'Arabic' },
-  { code: 'hi', name: 'Hindi' },
-  { code: 'tr', name: 'Turkish' },
-  { code: 'pl', name: 'Polish' },
-  { code: 'nl', name: 'Dutch' },
-  { code: 'sv', name: 'Swedish' },
-  { code: 'id', name: 'Indonesian' },
-  { code: 'fi', name: 'Finnish' },
-  { code: 'vi', name: 'Vietnamese' },
-  { code: 'he', name: 'Hebrew' },
-  { code: 'uk', name: 'Ukrainian' },
-  { code: 'cs', name: 'Czech' },
-  { code: 'ro', name: 'Romanian' },
-  { code: 'da', name: 'Danish' },
-  { code: 'hu', name: 'Hungarian' },
-  { code: 'th', name: 'Thai' },
-  { code: 'no', name: 'Norwegian' },
-  { code: 'el', name: 'Greek' },
-  { code: 'bg', name: 'Bulgarian' },
-  { code: 'hr', name: 'Croatian' },
-  { code: 'sk', name: 'Slovak' },
-  { code: 'sl', name: 'Slovenian' },
-  { code: 'sr', name: 'Serbian' },
-  { code: 'et', name: 'Estonian' },
-  { code: 'lv', name: 'Latvian' },
-  { code: 'lt', name: 'Lithuanian' },
-  { code: 'fa', name: 'Persian' },
-  { code: 'ur', name: 'Urdu' },
-  { code: 'bn', name: 'Bengali' },
-  { code: 'ta', name: 'Tamil' },
-  { code: 'te', name: 'Telugu' },
-  { code: 'ml', name: 'Malayalam' },
-  { code: 'kn', name: 'Kannada' },
-  { code: 'gu', name: 'Gujarati' },
-  { code: 'mr', name: 'Marathi' },
-  { code: 'pa', name: 'Punjabi' },
-  { code: 'ne', name: 'Nepali' },
-  { code: 'si', name: 'Sinhala' },
-  { code: 'my', name: 'Myanmar' },
-  { code: 'km', name: 'Khmer' },
-  { code: 'lo', name: 'Lao' },
-  { code: 'ka', name: 'Georgian' },
-  { code: 'am', name: 'Amharic' },
-  { code: 'az', name: 'Azerbaijani' },
-  { code: 'be', name: 'Belarusian' },
-  { code: 'bs', name: 'Bosnian' },
-  { code: 'ca', name: 'Catalan' },
-  { code: 'eu', name: 'Basque' },
-  { code: 'gl', name: 'Galician' },
-  { code: 'is', name: 'Icelandic' },
-  { code: 'mk', name: 'Macedonian' },
-  { code: 'sq', name: 'Albanian' },
-  { code: 'sw', name: 'Swahili' },
-  { code: 'af', name: 'Afrikaans' },
-  { code: 'ms', name: 'Malay' },
-  { code: 'yo', name: 'Yoruba' },
-  { code: 'so', name: 'Somali' },
-  { code: 'uz', name: 'Uzbek' },
-  { code: 'kk', name: 'Kazakh' },
-  { code: 'mn', name: 'Mongolian' },
-  { code: 'hy', name: 'Armenian' },
-  { code: 'tg', name: 'Tajik' },
-  { code: 'sd', name: 'Sindhi' },
-  { code: 'ps', name: 'Pashto' },
-  { code: 'tk', name: 'Turkmen' },
-  { code: 'tt', name: 'Tatar' },
-  { code: 'bo', name: 'Tibetan' },
-  { code: 'lb', name: 'Luxembourgish' },
-  { code: 'mt', name: 'Maltese' },
-  { code: 'cy', name: 'Welsh' },
-  { code: 'ga', name: 'Irish' },
-  { code: 'br', name: 'Breton' },
-  { code: 'oc', name: 'Occitan' },
-  { code: 'co', name: 'Corsican' },
-  { code: 'fy', name: 'Western Frisian' },
-];
+/** Whisper API task: transcribe in a given language, or translate speech to English */
+export type TranscriptionTask = 'transcribe' | 'translate';
 
 export interface TranscriptionOptions {
   /** Preferred Whisper model size */
@@ -221,7 +128,7 @@ export interface TranscriptionOptions {
   temperature?: number;
   
   /** Task type: transcribe or translate to English */
-  task?: 'transcribe' | 'translate';
+  task?: TranscriptionTask;
 }
 
 export interface JobSubmissionResponse {

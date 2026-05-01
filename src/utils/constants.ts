@@ -1,53 +1,13 @@
 // Single source of truth for configuration
-// Environment variables can override defaults, but defaults are defined here
-const getMaxFileSize = (): number => {
-  // Allow override via env var, but default to 50MB
-  const envSize = process.env.REACT_APP_MAX_FILE_SIZE;
-  if (envSize) {
-    const sizeMB = parseInt(envSize, 10);
-    if (!isNaN(sizeMB) && sizeMB > 0) {
-      return sizeMB * 1024 * 1024;
-    }
-  }
-  return 50 * 1024 * 1024; // Default: 50MB - demo site limit
-};
+import { FILE_RULES } from './fileRules';
 
 export const APP_CONFIG = {
   name: 'Whisperrr',
   version: '1.0.0',
   description: 'AI-powered audio transcription platform',
-  maxFileSize: getMaxFileSize(),
-  supportedFormats: [
-    'audio/mpeg',
-    'audio/mp3',
-    'audio/mpeg3',
-    'audio/wav',
-    'audio/wave',
-    'audio/x-wav',
-    'audio/mp4',
-    'audio/m4a',
-    'audio/x-m4a',
-    'audio/flac',
-    'audio/x-flac',
-    'audio/ogg',
-    'audio/vorbis',
-    'audio/x-ms-wma',
-    'audio/wma',
-    'audio/aac',
-    'audio/x-aac',
-    'video/mp4',
-    'video/x-msvideo',
-    'video/quicktime',
-    'video/x-matroska',
-    'video/x-flv',
-    'video/webm',
-    'video/x-ms-wmv',
-    'video/3gpp'
-  ],
-  supportedExtensions: [
-    '.mp3', '.wav', '.m4a', '.flac', '.ogg', '.wma', '.aac',
-    '.mp4', '.avi', '.mov', '.mkv', '.flv', '.webm', '.wmv', '.m4v', '.3gp'
-  ],
+  maxFileSize: FILE_RULES.maxFileSizeBytes,
+  supportedFormats: [...FILE_RULES.supportedMimeTypes],
+  supportedExtensions: [...FILE_RULES.supportedExtensions],
 };
 
 export const ROUTES = {
@@ -55,8 +15,8 @@ export const ROUTES = {
 } as const;
 
 export const ERROR_MESSAGES = {
-  FILE_TOO_LARGE: 'File size must be less than 50MB',
-  INVALID_FORMAT: 'Unsupported format. Please use audio formats (MP3, WAV, M4A, FLAC, OGG, WMA, AAC) or video formats (MP4, AVI, MOV, MKV, FLV, WEBM, WMV, M4V, 3GP)',
+  FILE_TOO_LARGE: 'File exceeds the maximum allowed size for this app.',
+  INVALID_FORMAT: FILE_RULES.invalidFormatMessage,
   UPLOAD_FAILED: 'Failed to upload file. Please try again.',
   NETWORK_ERROR: 'Network error. Please check your connection.',
   UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
@@ -71,57 +31,73 @@ export const SUCCESS_MESSAGES = {
 
 /**
  * Transcription workflow configuration constants.
- * Optimized for Docker networking with single-worker Python service.
+ * Tuned for local dev and a single-worker Python job store (see microservice README).
  */
 export const TRANSCRIPTION_CONFIG = {
   /** Initial poll interval for job progress checks in milliseconds. */
   INITIAL_POLL_INTERVAL_MS: 1500, // Start with 1.5 seconds (faster initial polling)
-  
+
   /** Maximum poll interval (adaptive polling will increase up to this). */
   MAX_POLL_INTERVAL_MS: 5000, // Max 5 seconds between polls (reduced for better responsiveness)
-  
+
   /** How much to increase polling interval each time (adaptive backoff). */
   POLL_INTERVAL_BACKOFF_MS: 500, // Increase by 500ms each time (gentler backoff)
-  
+
   /** Maximum time to wait for a job to complete (in milliseconds). */
   MAX_JOB_DURATION_MS: 2 * 60 * 60 * 1000, // 2 hours (supports very long audio files)
-  
+
   /** Maximum time without progress update before considering job hung (in milliseconds). */
   MAX_STALL_TIME_MS: 10 * 60 * 1000, // 10 minutes without update = hung
 } as const;
 
 /**
+ * Verbose API logging (resolved URL in constants, request/response in axios interceptors).
+ * On in development, or when VITE_DEBUG_API=true at build time.
+ */
+export const API_DEBUG_LOGGING =
+  import.meta.env.DEV || import.meta.env.VITE_DEBUG_API === 'true';
+
+/**
  * API configuration constants.
- * Uses environment variable if provided, otherwise defaults to localhost.
+ * Resolve base URL: explicit `VITE_API_URL`, else dev-time `/api` proxy path, else production default.
  */
 const getApiUrl = (): string => {
-  // Use environment variable if provided
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
+  /** Explicit URL (tunnel, preview, staging, production builds). */
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
-  // Default to localhost
+  /**
+   * Local dev default: relative `/api` is proxied by Vite to Spring (same origin → no CORS).
+   * Production static hosting without a proxy still needs `VITE_API_URL` at build time.
+   */
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
   return 'http://localhost:7331/api';
 };
 
 const resolvedApiUrl = getApiUrl();
 
-// Debug logging to show which API URL is being used
-console.log('[API Config] ============================================');
-console.log('[API Config] Environment Variable Debug Info:');
-console.log('[API Config]   REACT_APP_API_URL:', process.env.REACT_APP_API_URL || '(not set)');
-console.log('[API Config]   NODE_ENV:', process.env.NODE_ENV || '(not set)');
-if (process.env.REACT_APP_API_URL) {
-  console.log('[API Config]   ✓ Using API URL from environment variable');
-} else {
-  console.log('[API Config]   ✓ Using default localhost backend');
+if (API_DEBUG_LOGGING) {
+  console.log('[API Config] ============================================');
+  console.log('[API Config] Environment Variable Debug Info:');
+  console.log('[API Config]   VITE_API_URL:', import.meta.env.VITE_API_URL || '(not set)');
+  console.log('[API Config]   MODE:', import.meta.env.MODE || '(not set)');
+  if (import.meta.env.VITE_API_URL) {
+    console.log('[API Config]   ✓ Using API URL from VITE_API_URL');
+  } else if (import.meta.env.DEV) {
+    console.log('[API Config]   ✓ Using relative `/api` (Vite proxies to Spring in dev)');
+  } else {
+    console.log('[API Config]   ✓ Using bundled default URL (set VITE_API_URL when building without a gateway)');
+  }
+  console.log('[API Config]   Resolved API URL:', resolvedApiUrl);
+  console.log('[API Config] ============================================');
 }
-console.log('[API Config]   Resolved API URL:', resolvedApiUrl);
-console.log('[API Config] ============================================');
 
 export const API_CONFIG = {
   /** Default API base URL. */
   BASE_URL: resolvedApiUrl,
-  
+
   /** Request timeout in milliseconds (0 = no timeout for long-running jobs). */
   TIMEOUT: 0,
 } as const;
@@ -148,7 +124,7 @@ export const UI_CONFIG = {
 export const FILE_SIZE_CONFIG = {
   /** Bytes conversion factor. */
   BYTES_PER_KB: 1024,
-  
+
   /** File size unit labels. */
   UNITS: ['Bytes', 'KB', 'MB', 'GB'] as const,
 } as const;

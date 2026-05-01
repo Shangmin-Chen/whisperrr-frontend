@@ -12,9 +12,10 @@
 
 import { useState, useCallback } from 'react';
 import type { DragEvent } from 'react';
-import { useDropzone, type FileRejection } from 'react-dropzone';
-import { validateAudioFile, formatFileSize, getFileExtension } from '../utils/fileValidation';
-import { APP_CONFIG, ERROR_MESSAGES, UPLOAD_CONFIG } from '../utils/constants';
+import { useDropzone, type DropzoneState, type FileRejection } from 'react-dropzone';
+import { validateAudioFile, formatFileSize } from '../utils/fileValidation';
+import { ERROR_MESSAGES, UPLOAD_CONFIG } from '../utils/constants';
+import { FILE_RULES } from '../utils/fileRules';
 
 export interface FileUploadState {
   file: File | null;
@@ -38,8 +39,8 @@ export interface UseFileUploadReturn extends FileUploadState {
   clearError: () => void;
   
   // Dropzone props
-  getRootProps: () => any;
-  getInputProps: () => any;
+  getRootProps: DropzoneState['getRootProps'];
+  getInputProps: DropzoneState['getInputProps'];
   
   // Computed
   fileSize: string;
@@ -76,7 +77,7 @@ export const useFileUpload = (options: UseFileUploadOptions = {}): UseFileUpload
     }
   }, [onFileSelect, onError]);
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     if (disabled) return;
 
     // Handle rejected files
@@ -131,26 +132,15 @@ export const useFileUpload = (options: UseFileUploadOptions = {}): UseFileUpload
     onError?.(errorMessage);
   }, [onError]);
 
-  // Validator function to check file extensions and size (more reliable than MIME types)
   const validator = useCallback((file: File) => {
-    // Check file size first (files exactly at limit should be accepted)
-    if (file.size > APP_CONFIG.maxFileSize) {
-      const maxSizeFormatted = formatFileSize(APP_CONFIG.maxFileSize);
-      return {
-        code: 'file-too-large',
-        message: `File size must be ${maxSizeFormatted} or less (current: ${formatFileSize(file.size)})`
-      };
+    const validation = validateAudioFile(file);
+    if (validation.isValid) {
+      return null;
     }
-    
-    // Check file extension
-    const extension = getFileExtension(file.name);
-    if (!extension || !APP_CONFIG.supportedExtensions.includes(extension)) {
-      return {
-        code: 'file-invalid-type',
-        message: ERROR_MESSAGES.INVALID_FORMAT
-      };
-    }
-    return null;
+    return {
+      code: 'audio-validation-failed',
+      message: validation.error ?? ERROR_MESSAGES.UNKNOWN_ERROR,
+    };
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -159,20 +149,7 @@ export const useFileUpload = (options: UseFileUploadOptions = {}): UseFileUpload
     onDragLeave,
     onDragOver,
     onDropRejected,
-    // Use permissive accept with standard MIME types, validator handles extension filtering
-    accept: {
-      'audio/mpeg': ['.mp3'],
-      'audio/wav': ['.wav'],
-      'audio/mp4': ['.m4a'],
-      'audio/flac': ['.flac'],
-      'audio/ogg': ['.ogg'],
-      'audio/x-ms-wma': ['.wma'],
-      'audio/aac': ['.aac'],
-      'video/mp4': ['.mp4'],
-      'video/x-msvideo': ['.avi'],
-      'video/quicktime': ['.mov'],
-      'video/webm': ['.webm']
-    },
+    accept: FILE_RULES.dropzoneAccept,
     validator,
     maxFiles,
     // Don't use maxSize here - let validator handle it to allow files exactly at limit

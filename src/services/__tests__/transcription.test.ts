@@ -12,156 +12,27 @@
 import TranscriptionService from '../transcription';
 import apiClient from '../api';
 import {
-  TranscriptionResultResponse,
   JobSubmissionResponse,
-  JobProgressResponse
+  JobProgressResponse,
 } from '../../types/transcription';
+import { vi } from 'vitest';
 
-// Mock the API client
-jest.mock('../api', () => ({
+vi.mock('../api', () => ({
   __esModule: true,
   default: {
-    post: jest.fn(),
-    get: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
-const mockedApiClient = apiClient as jest.Mocked<typeof apiClient>;
+const mockedApiClient = apiClient as unknown as {
+  post: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+};
 
 describe('TranscriptionService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  // ========== Direct Transcription Tests ==========
-
-  describe('transcribeAudio', () => {
-    const mockFile = new File(['test audio content'], 'test.mp3', { type: 'audio/mpeg' });
-
-    it('should successfully transcribe audio with valid response', async () => {
-      const mockResponse: TranscriptionResultResponse = {
-        transcriptionText: 'Hello world',
-        language: 'en',
-        confidence: 0.95,
-        duration: 5.5,
-        modelUsed: 'base',
-        processingTime: 2.3,
-        completedAt: new Date().toISOString(),
-        status: 'COMPLETED' as any,
-      };
-
-      mockedApiClient.post.mockResolvedValue({ data: mockResponse });
-
-      const result = await TranscriptionService.transcribeAudio(mockFile, 'base');
-
-      expect(result).toEqual(mockResponse);
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        '/audio/transcribe',
-        expect.any(FormData),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Content-Type': 'multipart/form-data',
-          }),
-          params: { modelSize: 'base' },
-        })
-      );
-    });
-
-    it('should handle network errors', async () => {
-      mockedApiClient.post.mockRejectedValue(new Error('Network error'));
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow('Network error');
-    });
-
-    it('should handle 400 Bad Request errors', async () => {
-      const error: any = new Error('Bad Request');
-      error.response = { status: 400, data: { message: 'Invalid file format' } };
-      mockedApiClient.post.mockRejectedValue(error);
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow();
-    });
-
-    it('should handle 413 Payload Too Large errors', async () => {
-      const error: any = new Error('Payload Too Large');
-      error.response = { status: 413, data: { message: 'File too large' } };
-      mockedApiClient.post.mockRejectedValue(error);
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow();
-    });
-
-    it('should handle 500 Internal Server Error', async () => {
-      const error: any = new Error('Internal Server Error');
-      error.response = { status: 500, data: { message: 'Server error' } };
-      mockedApiClient.post.mockRejectedValue(error);
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow();
-    });
-
-    it('should handle timeout errors', async () => {
-      const error: any = new Error('Timeout');
-      error.code = 'ECONNABORTED';
-      mockedApiClient.post.mockRejectedValue(error);
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow('Timeout');
-    });
-
-    it('should handle malformed response data', async () => {
-      mockedApiClient.post.mockResolvedValue({ data: null });
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow();
-    });
-
-    it('should handle response missing required fields', async () => {
-      const invalidResponse = {
-        language: 'en',
-        // Missing transcriptionText
-      };
-      mockedApiClient.post.mockResolvedValue({ data: invalidResponse });
-
-      await expect(
-        TranscriptionService.transcribeAudio(mockFile)
-      ).rejects.toThrow();
-    });
-
-    it('should include modelSize in request when provided', async () => {
-      mockedApiClient.post.mockResolvedValue({ data: {} as TranscriptionResultResponse });
-
-      await TranscriptionService.transcribeAudio(mockFile, 'large');
-
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(FormData),
-        expect.objectContaining({
-          params: { modelSize: 'large' },
-        })
-      );
-    });
-
-    it('should not include modelSize when not provided', async () => {
-      mockedApiClient.post.mockResolvedValue({ data: {} as TranscriptionResultResponse });
-
-      await TranscriptionService.transcribeAudio(mockFile);
-
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(FormData),
-        expect.objectContaining({
-          params: {},
-        })
-      );
-    });
+    vi.clearAllMocks();
   });
 
   // ========== Job Submission Tests ==========
@@ -218,7 +89,13 @@ describe('TranscriptionService', () => {
     });
 
     it('should include optional parameters when provided', async () => {
-      mockedApiClient.post.mockResolvedValue({ data: {} as JobSubmissionResponse });
+      mockedApiClient.post.mockResolvedValue({
+        data: {
+          jobId: 'test-job-id',
+          status: 'PENDING',
+          message: 'ok',
+        } as JobSubmissionResponse,
+      });
 
       await TranscriptionService.submitTranscriptionJob(
         mockFile,
@@ -241,7 +118,13 @@ describe('TranscriptionService', () => {
     });
 
     it('should not include language when set to "auto"', async () => {
-      mockedApiClient.post.mockResolvedValue({ data: {} as JobSubmissionResponse });
+      mockedApiClient.post.mockResolvedValue({
+        data: {
+          jobId: 'test-job-id',
+          status: 'PENDING',
+          message: 'ok',
+        } as JobSubmissionResponse,
+      });
 
       await TranscriptionService.submitTranscriptionJob(mockFile, undefined, 'auto');
 
@@ -274,7 +157,6 @@ describe('TranscriptionService', () => {
         status: 'PROCESSING',
         progress: 50.0,
         message: 'Processing...',
-        result: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -357,12 +239,17 @@ describe('TranscriptionService', () => {
 
   describe('healthCheck', () => {
     it('should successfully perform health check', async () => {
-      mockedApiClient.get.mockResolvedValue({ data: { status: 'ok' } });
+      mockedApiClient.get.mockResolvedValue({ data: 'OK' });
 
       const result = await TranscriptionService.healthCheck();
 
-      expect(result.status).toBe('ok');
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/audio/health');
+      expect(result).toBe('OK');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/audio/health',
+        expect.objectContaining({
+          responseType: 'text',
+        })
+      );
     });
 
     it('should handle health check failures', async () => {

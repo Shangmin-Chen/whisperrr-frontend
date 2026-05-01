@@ -1,68 +1,55 @@
 /**
- * Language Selector Component for choosing output language.
- * 
- * This component provides a dropdown interface for users to select
- * the output language (transcription language) for transcription.
- * Input language is always auto-detected.
- * 
- * @author shangmin
- * @version 2.0
- * @since 2024
+ * Language Selector Component for choosing transcription / translation behavior.
  */
 
 import React from 'react';
-import { AVAILABLE_LANGUAGES, LanguageInfo } from '../../types/transcription';
+import { AVAILABLE_LANGUAGES } from '../../data/languages.catalog';
 import { Info, Languages } from 'lucide-react';
 
 interface LanguageSelectorProps {
-  /** Currently selected output language code */
-  outputLanguage: string;
-  
-  /** Callback when output language selection changes */
-  onOutputLanguageChange: (language: string) => void;
-  
-  /** Whether the component is disabled */
+  /** Selected language mode: auto, or ISO 639-1 code (en triggers translate-to-English) */
+  language: string;
+
+  onLanguageChange: (language: string) => void;
+
   disabled?: boolean;
-  
-  /** Additional CSS classes */
+
   className?: string;
 }
 
-/**
- * LanguageSelector component for choosing output language.
- * Input language is always auto-detected.
- */
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
-  outputLanguage,
-  onOutputLanguageChange,
+  language,
+  onLanguageChange,
   disabled = false,
   className = '',
 }) => {
-  // Filter out "auto" from output language options
-  const outputLanguageOptions = AVAILABLE_LANGUAGES.filter(lang => lang.code !== 'auto');
-  
-  // Get display name for selected output language
-  const outputLangInfo = AVAILABLE_LANGUAGES.find(lang => lang.code === outputLanguage);
+  const langInfo = AVAILABLE_LANGUAGES.find((lang) => lang.code === language);
+
+  const helpText =
+    language === 'auto'
+      ? 'The model will detect the spoken language and transcribe it in that language.'
+      : language === 'en'
+        ? 'Non-English speech is translated to English text (Whisper translate task).'
+        : `Transcription is constrained to ${langInfo?.name ?? language} for better accuracy.`;
 
   return (
     <div className={`space-y-4 ${className}`}>
       <div className="flex items-center gap-2 mb-2">
         <Languages className="h-5 w-5 text-gray-600 dark:text-gray-400" />
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Output Language
+          Language
         </label>
       </div>
-      
-      {/* Output Language Selector */}
+
       <div className="space-y-2">
         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
-          Transcription Language
+          Transcription mode
         </label>
-        
+
         <div className="relative">
           <select
-            value={outputLanguage}
-            onChange={(e) => onOutputLanguageChange(e.target.value)}
+            value={language}
+            onChange={(e) => onLanguageChange(e.target.value)}
             disabled={disabled}
             className={`
               w-full px-4 py-2 pr-10
@@ -76,14 +63,13 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
               cursor-pointer
             `}
           >
-            {outputLanguageOptions.map((lang) => (
+            {AVAILABLE_LANGUAGES.map((lang) => (
               <option key={lang.code} value={lang.code}>
-                {lang.name}
+                {formatLanguageOptionLabel(lang)}
               </option>
             ))}
           </select>
-          
-          {/* Custom dropdown arrow */}
+
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
             <svg
               className="h-5 w-5 text-gray-400"
@@ -100,22 +86,23 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           </div>
         </div>
       </div>
-      
-      {/* Language Info */}
+
       <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
         <div className="text-xs text-blue-700 dark:text-blue-300">
           <p className="font-medium mb-1">
-            Auto-detecting audio language • Output: {outputLangInfo?.name || outputLanguage}
+            {langInfo?.name ?? language}
           </p>
-          <p className="text-blue-600 dark:text-blue-400">
-            {outputLanguage === 'en' 
-              ? 'The system will automatically detect the source language and translate it to English.'
-              : `The system will automatically detect the source language and transcribe it in ${outputLangInfo?.name || outputLanguage}.`}
-          </p>
+          <p className="text-blue-600 dark:text-blue-400">{helpText}</p>
         </div>
       </div>
     </div>
   );
 };
 
+function formatLanguageOptionLabel(lang: { code: string; name: string }): string {
+  if (lang.code === 'auto') {
+    return `${lang.name} (recommended)`;
+  }
+  return lang.name;
+}

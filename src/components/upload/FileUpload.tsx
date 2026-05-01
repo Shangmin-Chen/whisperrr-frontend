@@ -1,50 +1,6 @@
 /**
- * File Upload Component with Drag and Drop functionality.
- * 
- * This component provides a modern, accessible file upload interface with
- * drag-and-drop support, file validation, and visual feedback. It's designed
- * to handle audio file uploads for the Whisperrr transcription service.
- * 
- * Key Features:
- *   - Drag and drop file upload with visual feedback
- *   - Click-to-browse file selection
- *   - Real-time file validation with error messages
- *   - Support for multiple audio formats (MP3, WAV, M4A, FLAC, OGG, WMA)
- *   - File size validation (max 50MB)
- *   - Responsive design with dark mode support
- *   - Accessible keyboard navigation
- * 
- * Visual States:
- *   - Default: Ready to accept files
- *   - Drag Active: File being dragged over component
- *   - Drag Reject: Invalid file being dragged
- *   - File Selected: Valid file ready for upload
- *   - Error: Validation or upload error
- *   - Disabled: Component temporarily unavailable
- * 
- * File Validation:
- *   - Supported formats: MP3, WAV, M4A, FLAC, OGG, WMA
- *   - Maximum file size: 50MB
- *   - MIME type validation
- *   - File extension validation
- *   - Real-time feedback for invalid files
- * 
- * Accessibility:
- *   - Screen reader compatible
- *   - Keyboard navigation support
- *   - ARIA labels and descriptions
- *   - Focus management
- *   - Color contrast compliance
- * 
- * Integration:
- *   - Uses useFileUpload hook for state management
- *   - Integrates with react-dropzone for drag/drop
- *   - Connects to transcription service workflow
- *   - Provides file metadata to parent components
- * 
- * @author shangmin
- * @version 1.0
- * @since 2024
+ * Drag-and-drop audio upload: validation and UI state live in `useFileUpload`;
+ * supported formats and size come from `../utils/fileRules`.
  */
 
 import React from 'react';
@@ -52,49 +8,15 @@ import { useFileUpload } from '../../hooks/useFileUpload';
 import { Button } from '../common/Button';
 import { Upload, FileAudio, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getFileTypeDisplayName } from '../../utils/fileValidation';
+import { getFileTypeDisplayName, formatFileSize } from '../../utils/fileValidation';
+import { FILE_RULES, getUploadSupportsCaption } from '../../utils/fileRules';
 
-/**
- * Props interface for the FileUpload component.
- */
 interface FileUploadProps {
-  /** Callback function called when a valid file is selected */
   onFileSelect: (file: File) => void;
-  /** Whether the component is disabled (prevents interaction) */
   disabled?: boolean;
-  /** Additional CSS classes to apply to the root element */
   className?: string;
 }
 
-/**
- * FileUpload component that provides drag-and-drop file upload functionality.
- * 
- * This component handles the complete file upload user experience, from
- * initial file selection through validation and preparation for transcription.
- * It provides clear visual feedback and error handling throughout the process.
- * 
- * Component Behavior:
- *   1. Displays upload area with clear instructions
- *   2. Handles drag and drop events with visual feedback
- *   3. Validates files against supported formats and size limits
- *   4. Shows file details when valid file is selected
- *   5. Provides error messages for invalid files
- *   6. Allows file removal and re-selection
- * 
- * State Management:
- *   - Uses useFileUpload hook for file handling logic
- *   - Manages drag states, validation, and error messages
- *   - Provides computed values for UI state
- * 
- * Visual Design:
- *   - Responsive layout that works on mobile and desktop
- *   - Smooth transitions and hover effects
- *   - Color-coded states (blue for active, green for success, red for error)
- *   - Dark mode support with appropriate color schemes
- * 
- * @param props - Component props
- * @returns JSX.Element The file upload interface
- */
 export const FileUpload: React.FC<FileUploadProps> = ({
   onFileSelect,
   disabled = false,
@@ -206,7 +128,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           {/* Supported Formats */}
           {!file && (
             <div className="text-xs text-gray-400 dark:text-gray-500">
-              Supports: MP3, WAV, M4A, FLAC, OGG, WMA (max 50MB)
+              {getUploadSupportsCaption(formatFileSize(FILE_RULES.maxFileSizeBytes))}
             </div>
           )}
         </div>

@@ -12,6 +12,7 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { vi } from 'vitest';
 import { useTranscription } from '../useTranscription';
 import { TranscriptionService } from '../../services/transcription';
 import {
@@ -19,15 +20,17 @@ import {
   JobProgressResponse,
 } from '../../types/transcription';
 
-// Mock the transcription service
-jest.mock('../../services/transcription', () => ({
+vi.mock('../../services/transcription', () => ({
   TranscriptionService: {
-    submitTranscriptionJob: jest.fn(),
-    getJobProgress: jest.fn(),
+    submitTranscriptionJob: vi.fn(),
+    getJobProgress: vi.fn(),
   },
 }));
 
-const mockedTranscriptionService = TranscriptionService as jest.Mocked<typeof TranscriptionService>;
+const mockedTranscriptionService = TranscriptionService as unknown as {
+  submitTranscriptionJob: ReturnType<typeof vi.fn>;
+  getJobProgress: ReturnType<typeof vi.fn>;
+};
 
 describe('useTranscription', () => {
   let queryClient: QueryClient;
@@ -43,13 +46,9 @@ describe('useTranscription', () => {
     wrapper = ({ children }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.clearAllMocks();
+    mockedTranscriptionService.submitTranscriptionJob.mockReset();
+    mockedTranscriptionService.getJobProgress.mockReset();
   });
 
   // ========== Job Submission Tests ==========
@@ -90,21 +89,22 @@ describe('useTranscription', () => {
     await act(async () => {
       try {
         await result.current.transcribeAudio(mockFile);
-      } catch (e) {
+      } catch {
         // Expected to fail
       }
     });
 
     await waitFor(() => {
       expect(result.current.isFailed).toBe(true);
-      expect(result.current.error).toBeTruthy();
     });
+    expect(result.current.error).toBeTruthy();
   });
 
   it('should handle network errors during submission', async () => {
     const mockFile = new File(['test'], 'test.mp3', { type: 'audio/mpeg' });
-    const networkError: any = new Error('Network error');
-    networkError.response = { status: 500 };
+    const networkError = Object.assign(new Error('Network error'), {
+      response: { status: 500 },
+    });
 
     mockedTranscriptionService.submitTranscriptionJob.mockRejectedValue(networkError);
 
@@ -113,7 +113,7 @@ describe('useTranscription', () => {
     await act(async () => {
       try {
         await result.current.transcribeAudio(mockFile);
-      } catch (e) {
+      } catch {
         // Expected to fail
       }
     });
@@ -138,7 +138,6 @@ describe('useTranscription', () => {
       status: TranscriptionStatus.PROCESSING,
       progress: 50.0,
       message: 'Processing...',
-      result: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -150,11 +149,6 @@ describe('useTranscription', () => {
 
     await act(async () => {
       await result.current.transcribeAudio(mockFile);
-    });
-
-    // Advance timers to trigger polling
-    act(() => {
-      jest.advanceTimersByTime(500);
     });
 
     await waitFor(() => {
@@ -179,10 +173,6 @@ describe('useTranscription', () => {
       await result.current.transcribeAudio(mockFile);
     });
 
-    act(() => {
-      jest.advanceTimersByTime(500);
-    });
-
     // Should continue polling despite errors (transient errors)
     await waitFor(() => {
       expect(mockedTranscriptionService.getJobProgress).toHaveBeenCalled();
@@ -197,8 +187,12 @@ describe('useTranscription', () => {
       message: 'Job submitted',
     };
 
-    const notFoundError: any = new Error('Not Found');
-    notFoundError.response = { status: 404 };
+    const notFoundError = Object.assign(new Error('Not Found'), {
+      response: {
+        status: 404,
+        data: { message: 'Job not found' },
+      },
+    });
 
     mockedTranscriptionService.submitTranscriptionJob.mockResolvedValue(mockJobResponse);
     mockedTranscriptionService.getJobProgress.mockRejectedValue(notFoundError);
@@ -209,14 +203,10 @@ describe('useTranscription', () => {
       await result.current.transcribeAudio(mockFile);
     });
 
-    act(() => {
-      jest.advanceTimersByTime(500);
-    });
-
     await waitFor(() => {
       expect(result.current.isFailed).toBe(true);
-      expect(result.current.error).toContain('not found');
     });
+    expect(result.current.error?.toLowerCase()).toContain('not found');
   });
 
   it('should stop polling when job completes', async () => {
@@ -255,21 +245,16 @@ describe('useTranscription', () => {
       await result.current.transcribeAudio(mockFile);
     });
 
-    act(() => {
-      jest.advanceTimersByTime(500);
-    });
-
     await waitFor(() => {
       expect(result.current.isCompleted).toBe(true);
-      expect(result.current.transcriptionResult).not.toBeNull();
     });
+    expect(result.current.transcriptionResult).not.toBeNull();
 
-    // Verify polling stopped
+    // Verify polling stopped (allow any scheduled timeout to flush)
     const callCount = mockedTranscriptionService.getJobProgress.mock.calls.length;
-    act(() => {
-      jest.advanceTimersByTime(1000);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 100));
     });
-    // Should not have made additional calls after completion
     expect(mockedTranscriptionService.getJobProgress.mock.calls.length).toBe(callCount);
   });
 
@@ -286,7 +271,6 @@ describe('useTranscription', () => {
       status: TranscriptionStatus.FAILED,
       progress: 0.0,
       message: 'Transcription failed',
-      result: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -300,14 +284,10 @@ describe('useTranscription', () => {
       await result.current.transcribeAudio(mockFile);
     });
 
-    act(() => {
-      jest.advanceTimersByTime(500);
-    });
-
     await waitFor(() => {
       expect(result.current.isFailed).toBe(true);
-      expect(result.current.error).toBeTruthy();
     });
+    expect(result.current.error).toBeTruthy();
   });
 
   // ========== State Management Tests ==========
@@ -349,7 +329,7 @@ describe('useTranscription', () => {
     await act(async () => {
       try {
         await result.current.transcribeAudio(mockFile);
-      } catch (e) {
+      } catch {
         // Expected to fail
       }
     });
@@ -430,4 +410,3 @@ describe('useTranscription', () => {
     expect(result.current.isIdle).toBe(false);
   });
 });
-

@@ -11,7 +11,8 @@
  */
 
 import React from 'react';
-import { WhisperModelSize, AVAILABLE_MODELS } from '../../types/transcription';
+import { WhisperModelSize } from '../../types/transcription';
+import { AVAILABLE_MODELS } from '../../data/models.catalog';
 import { Info } from 'lucide-react';
 
 interface ModelSelectorProps {

@@ -1,23 +1,15 @@
 # Multi-stage build for React application
 FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code and configuration files
+COPY index.html vite.config.ts tsconfig.json tailwind.config.js postcss.config.js ./
 COPY src ./src
 COPY public ./public
-COPY tsconfig.json ./
-COPY tailwind.config.js ./
-COPY postcss.config.js ./
 
-# Build the application
 RUN npm run build
 
 # Development stage (for live reloading)
@@ -26,17 +18,14 @@ FROM node:20-alpine AS development
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy configuration files
+COPY package.json package-lock.json ./
+COPY tsconfig.json tailwind.config.js postcss.config.js vite.config.ts ./
+COPY index.html ./
+COPY public ./public
 
 # Install all dependencies (including dev dependencies)
-RUN npm install
-
-# Copy configuration files
-COPY tsconfig.json ./
-COPY tailwind.config.js ./
-COPY postcss.config.js ./
-COPY public ./public
+RUN npm ci
 
 # Expose port
 EXPOSE 3737
