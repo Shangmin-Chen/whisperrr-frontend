@@ -10,14 +10,14 @@
  */
 
 import TranscriptionService from '../transcription';
-import apiClient from '../api';
+import apiClient from '../../lib/apiClient';
 import {
   JobSubmissionResponse,
   JobProgressResponse,
 } from '../../types/transcription';
 import { vi } from 'vitest';
 
-vi.mock('../api', () => ({
+vi.mock('../../lib/apiClient', () => ({
   __esModule: true,
   default: {
     post: vi.fn(),

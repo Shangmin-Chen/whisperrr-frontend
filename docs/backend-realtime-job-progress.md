@@ -1,6 +1,6 @@
 # Backend: realtime job progress (SSE / WebSocket)
 
-This complements the frontend stubs in `src/services/jobProgressStream.ts`. Today the app polls `GET /audio/jobs/:jobId/progress`. To eliminate polling, expose a **single long-lived stream** per job that emits the same JSON shape as `JobProgressResponse`.
+This complements the frontend stubs in `src/lib/jobProgressStream.ts`. Today the app polls `GET /audio/jobs/:jobId/progress`. To eliminate polling, expose a **single long-lived stream** per job that emits the same JSON shape as `JobProgressResponse`.
 
 ## Recommended shape (SSE)
 
@@ -49,7 +49,7 @@ Use a hot publisher (`Sinks.Many` or messaging bridge) fed from whatever updates
 
 - **Cookie-based session**: SSE GET inherits cookies (typical for same-site deployments).
 - **Token in query**: `...?token=` (short-lived, leak-sensitive — prefer cookies).
-- If you require `Authorization: Bearer`, use **`fetch` + ReadableStream** instead (`readJobProgressSseFetch` in `jobProgressStream.ts`) from a POST that returns `text/event-stream`, or open a **WebSocket**.
+- If you require `Authorization: Bearer`, use **`fetch` + ReadableStream** instead (`readJobProgressSseFetch` in `src/lib/jobProgressStream.ts`) from a POST that returns `text/event-stream`, or open a **WebSocket**.
 
 ## WebSocket variant
 

@@ -4,6 +4,7 @@
   "description": "React TypeScript frontend for Whisperrr audio transcription service",
   "private": true,
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
     "@tanstack/react-query": "^5.66.0",
     "axios": "^1.15.0",
     "clsx": "^2.0.0",
@@ -63,7 +64,11 @@
         "jsx": true
       }
     },
-    "plugins": ["@typescript-eslint", "react", "react-hooks"],
+    "plugins": [
+      "@typescript-eslint",
+      "react",
+      "react-hooks"
+    ],
     "settings": {
       "react": {
         "version": "detect"
@@ -88,7 +93,11 @@
         }
       }
     ],
-    "ignorePatterns": ["build", "dist", "node_modules"]
+    "ignorePatterns": [
+      "build",
+      "dist",
+      "node_modules"
+    ]
   },
   "browserslist": {
     "production": [

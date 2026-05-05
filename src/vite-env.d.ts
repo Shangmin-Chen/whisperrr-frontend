@@ -6,6 +6,10 @@ interface ImportMetaEnv {
   readonly VITE_DEV_PROXY_TARGET?: string;
   readonly VITE_MAX_FILE_SIZE?: string;
   readonly VITE_DEBUG_API?: string;
+  /** Supabase project URL (public, baked into the bundle). */
+  readonly VITE_SUPABASE_URL?: string;
+  /** Supabase publishable / anon key (public, baked into the bundle). */
+  readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
 }
 
 interface ImportMeta {
