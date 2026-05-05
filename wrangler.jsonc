@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "whisperrr-frontend",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-05-01",
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "html_handling": "force-trailing-slash"
+  },
+  "vars": {
+    "SPRING_ORIGIN": "https://placeholder-until-phase-4.example.com"
+  }
+}
