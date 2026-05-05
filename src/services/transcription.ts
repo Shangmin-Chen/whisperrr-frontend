@@ -8,7 +8,7 @@
  * @since 2024
  */
 
-import apiClient from './api';
+import apiClient from '../lib/apiClient';
 import {
   JobSubmissionResponse,
   JobProgressResponse,
