@@ -25,13 +25,40 @@ if (API_DEBUG_LOGGING) {
   console.log('[API Client] Initialized with base URL:', API_CONFIG.baseURL);
 }
 
+/** Refresh this far before Supabase {@code expires_at} so Spring never sees an expired JWT. */
+const ACCESS_TOKEN_REFRESH_SKEW_MS = 120_000;
+
+async function getAccessTokenForApi(): Promise<string | undefined> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return undefined;
+  }
+
+  const expiresAtMs = session.expires_at ? session.expires_at * 1000 : 0;
+  const needsRefresh =
+    !expiresAtMs || expiresAtMs <= Date.now() + ACCESS_TOKEN_REFRESH_SKEW_MS;
+
+  if (!needsRefresh) {
+    return session.access_token;
+  }
+
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error) {
+    if (API_DEBUG_LOGGING) {
+      console.warn('[API Client] refreshSession failed:', error.message);
+    }
+    return session.access_token;
+  }
+  return data.session?.access_token ?? session.access_token;
+}
+
 apiClient.interceptors.request.use(
   async (config) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
+    const token = await getAccessTokenForApi();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     if (API_DEBUG_LOGGING) {
@@ -58,10 +85,13 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     if (isAxiosError(error) && error.response?.status === 401) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // ignore sign-out failures
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !data.session) {
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // ignore sign-out failures
+        }
       }
     }
 
